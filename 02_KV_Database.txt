@@ -1,0 +1,211 @@
+9.
+wget http://download.redis.io/releases/redis-stable.tar.gz
+
+tar –xvf redis-stable.tar.gz
+cd redis-stable
+make
+
+src/redis-server
+
+Root 권한으로 실행할 것. 서비스 데몬으로 실행가능하도록 설정
+make install
+utils/install-server.sh
+
+
+11.
+
+> set users:gdhong "hong gil dong|seoul|010-222-3333"
+> get users:gdhong
+> get users:gdhong
+> strlen users:gdhong
+> getrange users:gdhong 3 8
+> append users:gdhong "|gdhong@test.com"
+> get users:gdhong
+> set temp:key1 "delete after 10 secs"
+> expire temp:key1 10
+> get temp:key1
+> get temp:key1
+
+
+
+
+12.
+
+> incr users:gdhong:1001 
+> incr users:gdhong:1001 
+> incrby users:gdhong:1001  10
+> incrby users:gdhong:1001 -5
+
+
+
+> mset a 1 b 2
+> mget a b c
+
+
+
+
+13. 
+
+> hset key1 subkey1 "hello"
+> hset key1 subkey2 "world"
+> hget key1 subkey1
+> hget key1 subkey2
+> hmget key1 subkey1 subkey2
+> hgetall key1
+> hkeys key1
+> hdel key1 subkey2
+
+
+14. 
+
+> lpush gdhong:test "a"
+(integer) 1
+> lpush gdhong:test "b"
+(integer) 2
+> lpush gdhong:test "c" "d"
+> lrange gdhong:test 0 -1
+1) "d"
+2) "c"
+3) "b"
+4) "a"
+> rpush gdhong:test "A"
+> rpush gdhong:test "B"
+> lrange gdhong:test 0 -1
+1) "d"
+2) "c"
+3) "b"
+4) "a"
+5) "A"
+6) "B"
+
+
+
+
+15. 
+
+> rpop gdhong:test
+"B"
+> lpop gdhong:test
+"d"
+> lrange gdhong:test 0 -1
+1) "c"
+2) "b"
+3) "a"
+4) "A"
+> lindex gdhong:test 3
+"b"
+> linsert gdhong:test BEFORE "A" "zz"
+(integer) 5
+> lrange gdhong:test 0 -1
+1) "c"
+2) "b"
+3) "a"
+4) "zz"
+5) "A"
+> llen gdhong:test
+(integer) 5
+
+
+
+
+16. 
+
+> sadd gdhong:task "programming"
+(integer) 1
+> sadd gdhong:task "reading"
+(integer) 1
+> sadd gdhong:task "reading"
+(integer) 0
+> smembers gdhong:task
+1) "reading"
+2) "programming"
+> sismember gdhong:task reading
+(integer) 1
+> sadd gdhong:task2 "meeting"
+> sadd gdhong:task2 "playing"
+> sadd gdhong:task2 "reading"
+> sunion gdhong:task gdhong:task2
+1) "reading"
+2) "meeting"
+3) "playing"
+4) "programming"
+
+
+
+17.
+> zadd users:point 1 gdhong
+(integer) 1
+> zadd users:point 2 mrlee 3 chsung 2 hdbyun
+(integer) 3
+> zrange users:point 0 -1 withscores
+1) "gdhong"
+2) "1"
+3) "hdbyun"
+4) "2"
+5) "mrlee"
+6) "2"
+7) "chsung"
+8) "3"
+> zcount users:point 2 3
+(integer) 3
+> zcount users:point -inf +inf
+(integer) 4
+> zincrby users:point 2 "mrlee"
+"4"
+
+
+19.
+[ 커넥션A에서 ]
+WATCH key2
+MULTI
+SET key1 1111
+SET key2 2222
+
+
+[ 커넥션B에서 ]
+SET key2 hello
+
+
+[ 커넥션A에서 ]
+SET key3 3333
+EXEC
+GET key1
+GET key2
+
+
+
+
+21.
+Jedis jedis = new Jedis("192.168.56.101", 6379);
+//String 값 저장
+String result = jedis.set("hello", "world");
+System.out.println(result);
+System.out.println(jedis.get("hello"));
+
+//sorted set 예제
+jedis.zadd("users:point", 2.0, "gdhong");
+Map<String,Double> m = new HashMap<String,Double>();
+m.put("mrlee", 2.0); m.put("chsung", 3.0); m.put("hdbyun", 2.0);
+jedis.zadd("users:point", m);
+jedis.zincrby("users:point", 2, "mrlee");
+Set<Tuple> set = jedis.zrangeWithScores("users:point", 0, -1);
+Iterator<Tuple> it = set.iterator();
+while (it.hasNext()) {
+	Tuple t = it.next();
+	System.out.println(t.getElement() + " : " + t.getScore());
+}
+jedis.close();
+
+
+
+
+
+
+
+
+
+
+
+
+
+

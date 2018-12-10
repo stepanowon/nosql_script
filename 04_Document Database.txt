@@ -1,0 +1,335 @@
+﻿13.
+show dbs
+show collections
+use  <dbname>
+db.<collection>.find(cond, projection)
+db.<collection>.findOne(cond, projection)
+db.<collection>.insert( doc )
+db.<collection>.update(cond, doc, option)
+db.createCollection(colName, option)
+
+
+
+14.
+db.peoples.insert({ 
+    _id : "gdhong",
+    name : "hong gil dong", 
+    gender : "m", 
+    home : "02-3429-5789", 
+    mobile : "010-2221-8375" 
+}) 
+
+
+16.
+db.peoples.insert({ 
+    _id : "gdhong", name : "hong gil dong", 
+    gender : "m",  home : "02-3429-5789", mobile : "010-2221-8375" 
+}) 
+db.peoples.update({ _id:"gdhong" }, { name:"홍길동" })
+db.peoples.findOne({ _id:"gdhong" })
+
+
+db.pageviews.update({ url : 'http://naver.com' }, { $inc : { hits : 1} }, { upsert:true });
+db.pageviews.update({ url : 'http://daum.net' }, { $inc : { hits : 1} }, { upsert:true });
+db.pageviews.update({ url : 'http://naver.com' }, { $inc : { hits : 1} }, { upsert:true });
+db.pageviews.update({ url : 'http://daum.net' }, { $inc : { hits : 1} }, { upsert:true });
+db.pageviews.update({ url : 'http://daum.net' }, { $inc : { hits : 1} }, { upsert:true });
+db.pageviews.find();
+
+
+
+17.
+db.users.insert({
+  _id : "A001", name : "홍길동", 
+  phones : { home : "02-2211-5678", office : "02-3429-1234" }, 
+  email : [ "gdhong@hotmail.com", "gdhong@gmail.com" ]
+})
+
+//집전화 변경
+db.users.update({ _id:"A001" }, { $set : { "phones.home" : "02-7788-9900" } })
+db.users.findOne({ _id:"A001" })
+
+//배열에 email 추가
+db.users.update({ _id:"A001" }, { $addToSet : { email : "gdhong7788@daum.net" } })
+db.users.findOne({ _id:"A001" })
+
+
+db.users.update( { regdate : '2012/11/12' }, 
+    { $set :  { gift : '50000원 상품권'} }, { multi: true } )
+
+
+
+
+19.
+db.scores.find({ score : { $gte : 91 } }, { name:1, score:1, _id: 0 }) 
+
+db.scores.find({ score : { $gte : 80 } })
+db.scores.find({ score : { $gte : 71, $gte : 80 } })
+
+db.scores.find({ score : { $in : [ 81, 82 ] } });
+db.scores.find({ $or : [ { score : 80 }, { name : "성춘향" } ] })
+
+
+
+
+20.
+db.scores.insert({ kor : 80 })
+db.scores.insert({ kor : 90 })
+db.scores.insert({ kor : null })
+db.scores.insert({ eng : null })
+
+db.scores.find({ kor : null })		//결과 확인 
+db.scores.find({ eng : null })		//결과 확인
+
+
+db.scores.find({ eng : { $in : [ null ], $exists : true } });
+
+
+
+21. 
+//도시 이름이 ABE로 시작하는  것들
+db.zipcodes.find({ city : /^ABE/})
+//도시 이름이 ABE로 시작하고 뒤에 5글자의 alphanumeric이 이어지는 경우만 조회
+db.zipcodes.find({ city : /^ABE(\w{5})$/})
+//도시 이름이 A또는 B로 시작하고 마지막이 C로 끝나는 것들
+db.zipcodes.find({ city : /^(A|B)\w+C$/})
+
+
+db.food.insert({  _id : 1, fruit : ["apple","banana","peach"] })
+db.food.insert({  _id : 2, fruit : ["apple","pineapple","orange"] })
+db.food.insert({  _id : 3, fruit : ["apple","banana","strawberry"] })
+db.food.insert({  _id : 4, fruit : ["apple","banana"] })
+
+//같다는 의미가 아니라 포함여부를 확인하는 쿼리 구문임.
+db.food.find({ fruit : "banana"})
+
+
+22.
+db.persons.insert({ _id : 1,
+   name : { first: "John",  last : "Kennedy" }, age : 40  });
+db.persons.insert({ _id : 2, name : { first: "Will",  last : "Smith" }, age : 31  });
+db.persons.insert({ _id : 3, name : { first: "Barack",  last : "Obama" }, age : 60  });
+db.persons.insert({ _id : 4, 
+   name : { first: "John", middle : "F",  last : "Kennedy" }, age : 60  });
+
+//middle이 존재하는 것은 검색하지 못함.
+db.persons.find({ name : { first : "John", last : "Kennedy" } });
+//middle이 존재하는 이름도 검색함.
+db.persons.find({ "name.first" : "John", "name.last" : "Kennedy" });
+
+
+
+23.
+var cursor = db.persons.find();
+while (cursor.hasNext()) {
+  var doc = cursor.next();
+  print(doc.name.first + " " + doc.name.last);
+}
+
+//scores 컬렉션에서 name,score 필드만 조회하여 성적순으로 내림차순 정렬한 뒤
+//앞에서 5개를 skip하고 10개만 조회함.
+db.scores.find({ }, { name : 1, score : 1 }).sort({ score : -1 }).skip(5).limit(10);
+
+
+
+24.
+//name 순 오름 차순 정렬된 인덱스 생성
+db.scores.ensureIndex({ name : 1 });
+//복합 인덱스
+db.scores.ensureIndex({ name : 1, scores : 1});
+// 내장 문서 인덱스
+db.persons.ensureIndex({ "name.last" : 1 });
+//배열 필드 인덱스(Multikeys 인덱스)
+db.food.ensureIndex({ fruit:1 })
+
+
+
+26.
+db.words.mapReduce(function() {
+    var wordlist = this.sentence.match(/\w+/g);
+    if (wordlist == null)
+      return null;
+    for (var i=0; i < wordlist.length; i++) {
+      emit(wordlist[i].toLowerCase() , {count : 1});
+    }
+}, function(key, emits) {
+    var total=0;
+    for (var i=0; i < emits.length; i++) {
+      total += emits[i].count;
+    }  
+    return {count : total };
+}, { 
+   out : { replace : 'mr' } 
+});
+
+db.mr.find();
+
+
+
+27.
+db.stocks.aggregate([{
+  "$match" : { "stock_symbol" : /^GO/, 
+          "date" : { "$gte" : "2006-01-01", "$lte" : "2006-12-31" } }
+},{
+  "$project" : { "stock_symbol":1, "close":1 }
+}, {
+  "$group" : {
+    "_id" : "$stock_symbol",
+    "max" : { "$max" : "$close" },
+    "avg" : { "$avg" : "$close" }
+  }
+}, {
+  "$sort" : { "stock_symbol" : 1 }
+}, {
+  "$out" : "stocks_mr"
+}]);
+
+
+
+
+29.
+MongoClient mongo = new MongoClient("localhost:27017");
+mongo.setWriteConcern(WriteConcern.SAFE);
+
+MongoDatabase test = mongo.getDatabase("test");
+MongoCollection<Document> persons = test.getCollection("persons");
+
+Document s1 = new Document("kor", 100).append("eng", 80)
+    .append("his", 100).append("mat",70);
+Document p1 = new Document("_id", "gdhong123").append("name", "홍길동")
+    .append("scores", s1)
+    .append("emails", Arrays.asList("gdhong123@gmail.com", "gdhong1@hotmail.com"));
+persons.insertOne(p1);
+
+Document s2 = new Document("kor", 80).append("eng", 90)
+    .append("his", 80).append("mat",90);
+Document p2 = new Document("_id", "mongrlee").append("name", "이몽룡")
+    .append("scores", s2)
+    .append("emails", Arrays.asList("mrlee@hotmail.com", "mongrl@daum.net"));
+persons.insertOne(p2);
+
+System.out.println("입력 완료!!");
+
+
+
+
+----------
+MongoClientURI uri = new MongoClientURI("mongodb://host:27017,host2:27017/?replicaSet=rs0",
+                                        MongoClientOptions.builder().cursorFinalizerEnabled(false))
+MongoClient client = new MongoClient(uri);
+
+
+
+30.
+MongoClient mongo = new MongoClient("localhost:27017");
+mongo.setWriteConcern(WriteConcern.SAFE);
+
+MongoDatabase test = mongo.getDatabase("test");
+MongoCollection<Document> persons = test.getCollection("persons");
+
+//FindIterable<Document> cursor = persons.find(new Document("_id", "gdhong123"));
+MongoCursor<Document> cursor = persons.find().iterator();
+System.out.println("이름, 국어, 영어, 국사, 수학");
+System.out.println("======================================");
+while (cursor.hasNext()) {
+    Document doc = cursor.next();
+    String name = doc.getString("name");
+    Document scores = (Document)doc.get("scores");
+    int kor = scores.getInteger("kor");
+    int eng = scores.getInteger("eng");
+    int his = scores.getInteger("his");
+    int mat = scores.getInteger("mat");
+    System.out.println(name + ", " + kor + ", " + eng + ", " + his + ", " + mat);
+}
+mongo.close();
+
+
+
+
+31.
+
+DB db = new MongoClient("localhost:27017").getDB("test2");
+Jongo jongo = new Jongo(db);
+MongoCollection persons = jongo.getCollection("persons");
+
+List<String> emails1 = new ArrayList<String>();
+emails1.add("gdhong@gmail.com");
+emails1.add("gdhong123@yahoo.com");
+Person p1 = new Person("gdhong", "홍길동", new Score(100,70,60,90), emails1);
+persons.insert(p1);
+
+List<String> emails2 = new ArrayList<String>();
+emails2.add("mrlee@hotmail.com");
+emails2.add("mrlee121@gmail.com");
+Person p2 = new Person("mrlee", "이몽룡", new Score(80,90,70,70), emails2);
+persons.insert(p2);
+
+System.out.println("test2 에 쓰기 완료!!");
+
+----------------------------------
+
+Person p1 = persons.findOne("{ name : '홍길동' }").as(Person.class);
+System.out.println(p1.getName() + " : " + p1.getEmails().get(0));
+System.out.println("========================");
+
+MongoCursor<Person> cursor = persons.find().as(Person.class);
+while (cursor.hasNext()) {
+	Person p = cursor.next();
+	System.out.println(p.getName() + "님의 국어 성적 : " + p.getScores().getKor() );
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

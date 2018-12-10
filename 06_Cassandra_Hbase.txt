@@ -1,0 +1,315 @@
+20. 
+
+//A:부서를 중심으로 직원들을 표현하고 싶을 때
+CREATE TABLE employees (
+	empid int,  deptid int, empname text,
+	PRIMARY KEY (deptid, empid)   
+);
+//B: 한 직원을 중심으로 부서 정보를 열람할 때 (여러 부서 겸직 표현이 용이함)
+CREATE TABLE employees (
+	empid int,  deptid int, empname text,
+	PRIMARY KEY (empid, deptid)   
+);
+//샘플 데이터
+INSERT INTO employees (empid, deptid, empname) VALUES (10001, 1, '홍길동');
+INSERT INTO employees (empid, deptid, empname) VALUES (10002, 1, '박문수');
+INSERT INTO employees (empid, deptid, empname) VALUES (10003, 2, '이몽룡');
+INSERT INTO employees (empid, deptid, empname) VALUES (10004, 1, '변학도');
+INSERT INTO employees (empid, deptid, empname) VALUES (10005, 3, '성춘향');
+INSERT INTO employees (empid, deptid, empname) VALUES (10006, 3, '갑돌이');
+
+
+
+
+22.
+CREATE TABLE employees2 (
+	empid int, deptid int, empname text,
+	email text, tel text,
+	PRIMARY KEY ((empid, deptid), empname)   
+);
+
+
+
+25.
+CREATE TABLE products (
+  productid  int,
+  productname  varchar,
+  price int,
+  PRIMARY KEY (productid)
+);
+
+INSERT INTO products (productid, productname, price) 
+  VALUES (1, '아이패드1', 3000);
+
+
+//샘플데이터는 자바코드 실행하여 확보( CasJDBCCLientTest 프로젝트의 InsertBulkData)
+CREATE INDEX idx_price ON products(price);
+
+
+SELECT * FROM products WHERE productid IN (1,2,3,4,5,6,7,8,9,10);	//OK
+
+SELECT * FROM products WHERE productid=1;	//OK
+
+SELECT * FROM products WHERE productid IN (1,2,3,4,5,6,7,8,9,10) AND price = 3000;
+에러발생 : 둘 중 하나만 조건으로 사용해야 함. Row Key와 Secondary Index 컬럼에 대해 동시에 조회 조건을 적용할 수 없음
+
+SELECT * FROM products WHERE price = 3000 LIMIT 10;
+실행시간을 고려해 10개로 제한create
+
+
+
+
+26.
+
+CREATE TABLE products2 (
+  productid  int,
+  type  varchar,
+  productname  varchar,
+  price int,
+  PRIMARY KEY (type, productid)
+);
+
+INSERT INTO products2 (productid, type, productname, price) 
+  VALUES (1, 'A', '아이패드1', 3000);
+...
+
+//샘플데이터는 자바코드 실행하여 확보( CasJDBCCLientTest 프로젝트의 InsertBulkData2)
+CREATE INDEX idx2_price ON products2(price);
+
+
+SELECT * FROM products2 WHERE type='A' LIMIT 100;	//OK
+
+SELECT * FROM products2 WHERE type='A' AND productid > 1000 AND productid < 1500;
+type에 대해 EQ 조건, productid에 대해 Range Query.. 조건을 만족시키므로 조회 성공
+
+SELECT * FROM products2 WHERE productid > 1000 AND productid < 1500;
+조회는 성공할 수 있으나 성능 문제로 ALLOW FILTERING 옵션을 사용해야 함.
+
+SELECT * FROM products2 WHERE price > 5000;
+이것은 인덱싱을 해도 range query는 불가능함. column value에 대해 인덱싱 되었기 때문임.
+
+
+
+
+
+27.
+CREATE TABLE products3 (
+  productid  int,
+  type  varchar,
+  productname  varchar,
+  price int,
+  PRIMARY KEY ((type, productid))
+);
+
+INSERT INTO products3 (productid, type, productname, price) 
+  VALUES (1, 'A', '아이패드1', 3000);
+...  
+
+//샘플데이터는 자바코드 실행하여 확보( CasJDBCCLientTest 프로젝트의 InsertBulkData3)
+
+CREATE INDEX idx3_price ON products3(price);
+
+SELECT * FROM products3 WHERE type='A' LIMIT 100;
+에러 발생 Row Key 중 일부 값인 productid가 포함되지 않았다.
+
+SELECT * FROM products3 WHERE type='A' AND productid > 1000 AND productid < 1500;
+productid로 된 독립적인 column key가 없으므로 range query 실패
+
+SELECT * FROM products3 WHERE type='A' AND productid=1000;
+정상 실행
+
+
+
+28.
+
+CREATE TABLE products2 (
+  productid  int,
+  type  varchar,
+  productname  varchar,
+  price int,
+  PRIMARY KEY (type, productid)
+);
+
+//세컨더리 인덱스 설정
+create index idx2_price on products2(price);
+
+
+
+select * from products2 WHERE type IN ('C','A') ORDER BY type ASC LIMIT 10;
+Row Key로 정렬 불가
+
+select * from products2 WHERE type IN ('C','A') ORDER BY price ASC LIMIT 10;
+Secondary Index Column으로 정렬 불가
+
+select * from products2 WHERE type IN ('C','A') ORDER BY productid ASC LIMIT 10;
+
+select * from products2 WHERE type IN ('C','A') ORDER BY productid DESC LIMIT 10;
+
+select * from products2 WHERE type IN ('C','A') AND productid IN (2,17,15,30000,29995) ORDER BY productid ASC;
+
+select * from products2 WHERE type IN ('C','A') AND productid < 50 ORDER BY productid ASC;
+
+
+
+
+29.
+CREATE TABLE products2 ( productid  int, type  varchar,
+  productname  varchar, price int,
+  PRIMARY KEY (type, productid)
+);
+
+
+
+UPDATE products2 SET productname='맥북에어1' WHERE productid=2;
+에러 발생 : row key가 포함되지 않았음.
+
+UPDATE products2 SET productname='맥북에어1' WHERE productid=2 and type='C';
+결과는 SELECT * FROM products2 WHERE type='C' AND productid < 100; 로 확인
+
+UPDATE products2 SET productname='맥북에어2' WHERE type='C';
+에러 발생 : primary key의 일부분인 productid에 대해 EQ 연산이 포함되지 않았음.
+
+UPDATE products2 SET productname='맥북에어2' WHERE type='C' AND productid < 40;
+<, >, <=, >=과 Range Query가 업데이트시에 사용되어서는 안됨.
+
+UPDATE products2 SET productname='맥북에어2' WHERE type='C' AND productid IN (2,7,12);
+Column Key에 대해서는 경우는 IN 연산 허용하지 않음.
+
+UPDATE products2 SET productname='맥북에어2' WHERE type IN ('C','A') AND productid=2;
+정상 실행
+
+
+
+
+30. 
+
+CREATE TABLE log1 ( 
+  uid   int,
+  machine_id  varchar, 
+  log_time  timestamp,
+  log_text  varchar,
+  PRIMARY KEY (uid)
+);
+
+
+
+31.
+CREATE TABLE log2 ( 
+  machine_id  varchar, 
+  log_time  timestamp,
+  log_text  varchar,
+  PRIMARY KEY (machine_id)
+);
+
+
+32.
+CREATE TABLE log31 ( 
+  machine_id  varchar, 
+  log_time  timestamp,
+  log_text  varchar,
+  PRIMARY KEY (machine_id,log_time)
+);
+
+CREATE TABLE log32 ( 
+  machine_id  varchar, 
+  log_time  timestamp,
+  log_text  varchar,
+  PRIMARY KEY (log_time, machine_id)
+);
+
+
+33.
+CREATE TABLE log4 ( 
+  machine_id  varchar, 
+  log_date  varchar,
+  log_time  timestamp,
+  log_text  varchar,
+  PRIMARY KEY ((machine_id,log_date),log_time)
+);
+
+
+
+
+37.
+
+CREATE TABLE artist( 
+  artist_id  uuid, 
+  artist_name  varchar,
+  email  varchar,
+  songs  list<text>,
+  PRIMARY KEY (artist_id)
+);
+
+CREATE INDEX idx_artist ON artist(artist_name);
+
+
+
+
+
+38.
+
+CREATE TABLE song( 
+  song_id uuid, title  varchar,
+  artist_id  uuid, artist_name  varchar,
+  album_id   uuid, album_title  varchar,
+  PRIMARY KEY (album_id, song_id)
+);
+CREATE INDEX idx_song_title ON song(title);
+
+
+
+CREATE TABLE album( 
+  album_id uuid, 
+  album_title  varchar,
+  pubdate  timestamp,
+  PRIMARY KEY (album_id)
+);
+
+CREATE INDEX idx_album_title ON album(album_title);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

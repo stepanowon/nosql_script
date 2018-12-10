@@ -1,0 +1,876 @@
+﻿19. 
+CREATE KEYSPACE test1 
+  with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy' 
+  and strategy_options = { replication_factor:3 };
+use test1;
+
+
+describe test1;
+
+
+
+20.
+CREATE COLUMN FAMILY users
+	WITH comparator = UTF8Type
+	AND key_validation_class=UTF8Type
+	AND column_metadata = [
+		{column_name: full_name, validation_class: UTF8Type}
+		{column_name: email, validation_class: UTF8Type}
+		{column_name: city, validation_class: UTF8Type}
+		{column_name: gender, validation_class: UTF8Type}
+		{column_name: birth_year, validation_class: LongType}
+	];
+
+
+CREATE COLUMN FAMILY users WITH comparator = UTF8Type            
+AND key_validation_class=UTF8Type                                 
+AND default_validation_class=UTF8Type;
+
+
+
+21.
+assume users comparator as utf8;
+assume users validator as utf8;
+assume users keys as utf8;
+
+set users['gdhong']['full_name'] = 'honggil dong';
+set users['gdhong']['email'] = 'gdhong@multi.com';
+set users['gdhong']['city'] = 'Seoul';
+set users['gdhong']['gender'] = 'M';
+set users['gdhong']['birth_year'] = '1988';
+set users['mrlee']['full_name'] = 'mongryong lee';
+set users['mrlee']['email'] = 'mrlee@multi.com';
+set users['mrlee']['city'] = 'Namwon';
+set users['mrlee']['gender'] = 'M';
+set users['mrlee']['birth_year'] = '1991';
+
+
+get users['mrlee'];
+get users['mrlee']['email'];
+
+
+list users;
+
+
+22.
+UPDATE COLUMN FAMILY users
+	WITH comparator = UTF8Type AND key_validation_class=UTF8Type
+	AND column_metadata = [
+   {column_name: full_name, validation_class: UTF8Type},
+   {column_name: email, validation_class: UTF8Type, index_type:KEYS },
+   {column_name: city, validation_class: UTF8Type},
+   {column_name: gender, validation_class: UTF8Type },
+   {column_name: birth_year, validation_class: LongType, index_type:KEYS } 
+  ];
+
+
+del users['mspark'];
+del users['mrlee']['test'];
+drop column family users;
+
+get users['mrlee'];
+
+get users where name=utf8('gdhong');
+
+Drop Index on users.email;
+
+
+
+23. 
+set users['mrlee']['session'] = utf8('askflhwkgja') with ttl=60;
+get users['mrlee'];  명령으로 조회/확인
+
+create column family MyCounters 
+   with default_validation_class=CounterColumnType and comparator=UTF8Type;
+assume MyCounters keys as utf8;
+INCR MyCounters['key1']['thing1'];
+INCR MyCounters['key1']['thing1'] by 5;
+list MyCounters;
+
+
+24.
+
+create column family users2 with comparator = 'UTF8Type' and
+	column_type = 'Super' and  subcomparator = 'UTF8Type';
+
+
+set users2['mrlee']['name']['first'] = 'Mongryong';
+set users2['mrlee']['name']['last'] = 'Lee';
+set users2['mrlee']['address']['dong'] = 'yeksam';
+set users2['mrlee']['address']['bunji'] = '718-5';
+set users2['mrlee']['address']['gu'] = 'gangnam';
+
+
+25.
+create column family CountryStateCity
+with comparator = 'CompositeType(UTF8Type,UTF8Type)'
+and key_validation_class = 'UTF8Type'
+and default_validation_class = 'UTF8Type';
+
+[default@testdb] get CountryStateCity['Korea']['Seoul:Nowon'];
+=> (name=Seoul:Nowon, value=노원구입니다, timestamp=1381716451535000)
+Elapsed time: 50 msec(s).
+
+
+28.
+
+[ System keyspace 쿼리 ]
+
+select * from system.schema_keyspaces;
+select key,cluster_name,data_center,gossip_generation, thrift_version from system.local;
+select peer,daselect keyspace_name, columnfamily_name, column_name, index_type from system.schema_columns where keyspace_name='testdb';
+ta_center,rack,ring_id,rpc_address from system.peers;
+select keyspace_name, columnfamily_name, column_name, index_type from system.schema_columns where keyspace_name='testdb';
+select keyspace_name, columnfamily_name, bloom_filter_fp_chance from system.schema_columnfamilies;
+
+
+
+29.
+Class.forName("org.apache.cassandra.cql.jdbc.CassandraDriver");
+Connection con = DriverManager.getConnection(
+                            "jdbc:cassandra://192.168.56.121:9160/testdb");   
+String sql = "INSERT INTO products (productid, productname, price)  "+ 
+                " VALUES (?, ?, ?)";
+PreparedStatement pstmt =  con.prepareStatement(sql);
+    
+for (int i=1; i <= 30000; i++) {
+    pstmt.setInt(1, i);
+    pstmt.setString(2, "홍길동" + i);
+    pstmt.setInt(3, 1000+(500*(i % 10)));
+    pstmt.executeUpdate();
+}
+
+pstmt.close();
+con.close();
+
+
+
+30.
+CREATE KEYSPACE testdb with REPLICATION={'class':'SimpleStrategy', 'replication_factor': 3};
+
+CREATE TABLE IF NOT EXISTS keyspace+_name.table_name
+column_definition, column_definition, ...... )
+WITH property AND property ......
+
+
+CREATE TABLE users (	
+     userid varchar,
+     username varchar,
+     password varchar,
+     email varchar,
+     PRIMARY KEY (userid)
+   );
+
+
+
+31.
+//A:부서를 중심으로 직원들을 표현하고 싶을 때
+CREATE TABLE employees (
+	empid int,  deptid int, empname text,
+	PRIMARY KEY (deptid, empid)   
+);
+//B: 한 직원을 중심으로 부서 정보를 열람할 때 (여러 부서 겸직 표현이 용이함)
+CREATE TABLE employees (
+	empid int,  deptid int, empname text,
+	PRIMARY KEY (empid, deptid)   
+);
+//샘플 데이터
+INSERT INTO employees (empid, deptid, empname) VALUES (10001, 1, '홍길동');
+INSERT INTO employees (empid, deptid, empname) VALUES (10002, 1, '박문수');
+INSERT INTO employees (empid, deptid, empname) VALUES (10003, 2, '이몽룡');
+INSERT INTO employees (empid, deptid, empname) VALUES (10004, 1, '변학도');
+INSERT INTO employees (empid, deptid, empname) VALUES (10005, 3, '성춘향');
+INSERT INTO employees (empid, deptid, empname) VALUES (10006, 3, '갑돌이');
+
+
+
+33.
+CREATE TABLE employees2 (
+	empid int, deptid int, empname text,
+	email text, tel text,
+	PRIMARY KEY ((deptid, empid), empname)   
+);
+
+
+INSERT INTO employees2 (empid, deptid, empname, email, tel) VALUES (10001, 1, '홍길동', 'gdhong@opensg.net', '010-222-3333');
+INSERT INTO employees2 (empid, deptid, empname, email, tel) VALUES (10002, 1, '박문수', 'mspark@opensg.net','010-777-7778');
+
+
+34.
+SELECT * FROM users WHERE password='1234';
+	Bad Request: No indexed columns present in by-columns clause with Equal operator
+
+
+SELECT * FROM employees ORDER BY deptid ASC;
+	Bad Request: ORDER BY is only supported when the partition key is restricted by an EQ or an IN.
+
+
+
+
+35.
+ALTER TABLE users ADD tel varchar;
+select keyspace_name, columnfamily_name, column_name, validator
+  from system.schema_columns
+  where keyspace_name='testdb' AND columnfamily_name='users';
+
+ALTER TABLE users ALTER birth TYPE varchar;
+
+ALTER TABLE users DROP tel;
+
+DROP Keyspace testdb;
+DROP Table users;
+DELETE email FROM users WHERE userid='gdhong';
+DELETE FROM users WHERE userid='gdhong';
+
+
+
+36.
+ALTER TABLE users ADD phones set<text>;
+UPDATE users SET phones = phones + { '010-1212-3232' } WHERE userid='gdhong';
+UPDATE users SET phones = phones + { '02-3429-5211' } WHERE userid='gdhong';
+UPDATE users SET phones = phones + { '02-3429-5211' } WHERE userid='gdhong';
+
+SELECT userid, phones FROM users;
+
+
+
+37.
+ALTER TABLE users ADD visit_places list<text>;
+UPDATE users SET visit_places = ['스타벅스', '내사무실'] 
+   WHERE userid='gdhong';
+SELECT userid, visit_places FROM users;
+UPDATE users SET visit_places = visit_places + ['잠실야구장'] 
+   WHERE userid='gdhong';
+UPDATE users SET visit_places = ['인사동 골목'] + visit_places 
+   WHERE userid='gdhong';
+SELECT userid, visit_places FROM users;
+
+
+ALTER TABLE users DROP visit_places;
+
+
+
+
+38.
+ALTER TABLE users ADD visit_places map<timestamp, text>;
+INSERT INTO users (userid, username, password, email) VALUES ('gdhong', '홍길동', '1234', 'gdhong@opensg.net');
+UPDATE users SET visit_places={ '2013-08-31 12:12:46':'스타벅스' } WHERE userid='gdhong';
+UPDATE users SET visit_places['2013-09-02 14:15:29'] = '야구장'  WHERE userid='gdhong';
+
+SELECT userid, visit_places FROM users;
+
+
+
+39.
+CREATE TABLE pageviews (url varchar, views counter, 
+        PRIMARY KEY (url) );
+
+UPDATE pageviews SET views = views+1 WHERE url='http://www.opensg.net';
+
+
+40.
+SELECT select_expression
+FROM keyspace_name.table_name
+WHERE relation AND relation ...
+ORDER BY ( clustering_key ( ASC | DESC )...)
+LIMIT n
+ALLOW FILTERING
+
+
+
+44.
+yum install openssh-server openssh-clients
+chkconfig ssh on
+service sshd start
+
+ssh-keygen -t rsa
+cat id_rsa.pub >> authorized_keys
+ssh hadoop@sN  cat  ~/.ssh/id_rsa.pub >> authorized_keys 
+
+scp authorized_keys hadoop@sN :~/.ssh/ 
+
+
+yum install ntp -y
+service ntpd start
+chkconfig ntpd on
+
+
+45.
+hadoop 2.x.x 버전을 다운로드함.
+s1,s2,s3,s4 의 다운로드 디렉토리에서 hadoop 설치
+tar -xvf hadoop-x.x.x.tar.gz 
+mv  hadoop-x.x.x  ../
+cd  ..
+ln -s hadoop-x.x.x   hadoop
+
+export JAVA_HOME=/usr/java/latest
+
+export JAVA_HOME=/usr/java/latest
+export HADOOP_HOME=/home/hadoop/hadoop
+export HADOOP_MAPRED_HOME=$HADOOP_HOME
+export HADOOP_COMMON_HOME=$HADOOP_HOME
+export HADOOP_HDFS_HOME=$HADOOP_HOME
+export YARN_HOME=$HADOOP_HOME
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export YARN_CONF_DIR=$HADOOP_CONF_DIR
+export HADOOP_OPTS="-Djava.library.path=$HADOOP_HOME/lib"
+PATH=$JAVA_HOME/bin:$PATH:$HADOOP_HOME/bin:$HADOOP_HOME/sbin
+
+
+
+
+
+46.
+[ core-site.xml ]
+
+<configuration>
+    <property>
+        <name>fs.default.name</name>
+        <value>hdfs://s1.test.com:9000</value>
+    </property>
+</configuration>
+
+
+[ mapred-site.xml ]
+
+<configuration>
+    <property>
+        <name>mapreduce.framework.name</name>
+        <value>yarn</value>
+    </property>
+</configuration>
+
+
+[ yarn-site.xml ]
+
+<configuration>
+    <property>
+        <name>yarn.nodemanager.aux-services</name>
+        <value>mapreduce_shuffle</value>
+    </property>
+    <property>
+        <name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+        <value>org.apache.hadoop.mapred.ShuffleHandler</value>
+    </property>
+    <property>
+        <name>yarn.application.classpath</name>
+        <value>
+             $HADOOP_CONF_DIR,$HADOOP_COMMON_HOME/*,$HADOOP_COMMON_HOME/lib/*,
+             $HADOOP_HDFS_HOME/*,$HADOOP_HDFS_HOME/lib/*,$HADOOP_MAPRED_HOME/*,
+             $HADOOP_MAPRED_HOME/lib/*,$YARN_HOME/*,$YARN_HOME/lib/*
+        </value>
+    </property>
+</configuration>
+
+
+
+47. 
+[ hdfs-site.xml ]
+
+<configuration>
+    <property>
+        <name>dfs.replication</name>
+        <value>3</value>
+    </property>
+    <property>
+        <name>dfs.name.dir</name>
+        <value>/home/hadoop/data/hdfs/namenode</value>
+    </property>
+    <property>
+        <name>dfs.data.dir</name>
+        <value>/home/hadoop/data/hdfs/datanode</value>
+    </property>
+    <property>
+        <name>fs.hdfs.impl</name>
+        <value>org.apache.hadoop.hdfs.DistributedFileSystem</value>
+        <description>The FileSystem for hdfs: uris.</description>
+    </property>
+</configuration>
+
+
+[ slaves ] 
+   s2.test.com
+   s3.test.com
+   s4.test.com
+
+
+   mkdir -p ~/data/hdfs/namenode
+   mkdir -p ~/data/hdfs/datanode
+
+   scp  ~/hadoop/etc/hadoop/* hadoop@sN.test.com:~/hadoop/etc/hadoop/
+
+   ~/hadoop/bin/hadoop namenode  -format
+
+   ~/hadoop/sbin/start-all.sh
+
+
+48.
+zookeeper 3.x.x 버전을 다운로드 함.
+tar -zxvf zookeeper-3.x.x.tar.gz
+mv zookeeper-3.x.x ~/
+ln -s ~/zookeeper-3.x.x ~/zookeeper
+
+dataDir=/home/hadoop/data/zookeeper/data
+server.1=s1.test.com:2888:3888
+server.2=s2.test.com:2888:3888
+server.3=s3.test.com:2888:3888
+server.4=s4.test.com:2888:3888
+
+
+mkdir -p ~/data/zookeeper/data/
+echo 1  >> ~/data/zookeeper/data/myid
+
+	scp -r ~/zookeeper/conf/* hadoop@s2.test.com:~/zookeeper/conf/
+	scp -r ~/zookeeper/conf/* hadoop@s3.test.com:~/zookeeper/conf/
+	scp -r ~/zookeeper/conf/* hadoop@s4.test.com:~/zookeeper/conf/
+
+	~/zookeeper/bin/zkServer.sh start
+	ssh hadoop@s2.test.com "~/zookeeper/bin/zkServer.sh start"
+	ssh hadoop@s3.test.com "~/zookeeper/bin/zkServer.sh start"
+	ssh hadoop@s4.test.com "~/zookeeper/bin/zkServer.sh start"
+
+
+
+
+49.
+hbase-x.x.x-bin.tar.gz 파일 다운로드
+tar -zxf hbase-x.x.x-bin.tar.gz
+mv hbase-x.x.x ~/
+cd 
+ln -s ~/hbase-x.x.x ~/hbase
+
+
+export JAVA_HOME=/usr/java/latest
+export HBASE_MANAGES_ZK=false
+
+
+[ regionservers ]
+s2.test.com
+s3.test.com
+s4.test.com
+
+
+
+50. 
+[ hbase-site.xml ]
+
+<configuration>
+    <property>
+        <name>hbase.rootdir</name>
+        <value>hdfs://s1.test.com:9000/hbase</value>
+    </property>
+    <property>
+        <name>hbase.zookeeper.quorum</name>
+        <value>s1.test.com,s2.test.com,s3.test.com,s4.test.com</value>
+    </property>
+    <property>
+        <name>hbase.zookeeper.property.dataDir</name>
+        <value>/home/hadoop/data/zookeeper/data</value>
+    </property>
+    <property>
+        <name>hbase.cluster.distributed</name>
+        <value>true</value>
+    </property>
+
+<property>
+	<name>hbase.dynamic.jars.dir</name>
+	<value>/home/hadoop/hbase/lib</value>
+</property>
+<property>
+	<name>hbase.master.info.port</name>
+	<value>60010</value>
+</property>
+<property>
+	<name>hbase.regionserver.info.port</name>
+	<value>60030</value>
+</property>
+<property>
+	<name>hbase.master.info.bindAddress</name>
+	<value>0.0.0.0</value>
+</property>
+<property>
+	<name>hbase.regionserver.info.bindAddress</name>
+	<value>0.0.0.0</value>
+</property>
+
+</configuration>
+
+
+
+51.
+
+scp  ~/hbase/conf/*  hadoop@s2.test.com:~/hbase/conf/
+scp  ~/hbase/conf/*  hadoop@s3.test.com:~/hbase/conf/
+scp  ~/hbase/conf/*  hadoop@s4.test.com:~/hbase/conf/
+
+~/hbase/bin/start-hbase.sh
+
+./bin/hbase shell
+
+
+create 'test1', 'cf1'
+list 'test1'
+put 'test1', 'row1', 'cf1:a', 'value1'
+put 'test1', 'row2', 'cf1:b', 'value2'
+put 'test1', 'row3', 'cf1:a', 'value3'
+scan 'test1'
+get 'test1', 'row1'
+list;
+
+
+
+52.
+
+create 'test2', {NAME=>'cf1', VERSIONS=>1, TTL=>86400 } 
+
+hbase> create 'employees', 'personal', 'job'
+0 row(s) in 3.2300 seconds
+
+hbase> list
+TABLE                                                                           
+employees                                                                       
+1 row(s) in 0.0430 seconds
+
+
+
+54.
+alter 'test1', NAME=>'cf1', METHOD=>'delete'
+
+alter 'test1', NAME=>'cf2', VERSIONS=>0
+
+alter 'test1', METHOD=>'table_att', MAX_FILESIZE=>'134217728'
+
+
+
+55.
+
+put 'test1', 'key1', 'cf1:a', '1111'
+
+get 'test1', 'key1'
+get 'test1', 'key1', 'cf1'
+get 'test1', 'key1', 'cf1:a'
+
+delete 'test1', 'key1', 'cf1:a'
+deleteall 'test1', 'key1'
+
+
+
+56. 
+scan 'test1'
+scan 'test1', {COLUMNS=>'cf1:a'}
+scan 'test1', { FILTER => "ValueFilter(=,'substring:asa')" }
+scan 'test1', {COLUMNS => ['cf1:a', 'cf1:b'], LIMIT => 3, STARTROW => 'key2'}
+
+count 'test1'
+
+truncate 'test1'
+disable -> drop -> recreate
+
+
+57.
+create 'orders', 'client', 'product'
+put 'orders', 'joe_2013-01-13', 'client:name', 'Joe'
+put 'orders', 'joe_2013-01-13', 'client:address', 'Hillroad 1, SF'
+put 'orders', 'joe_2013-01-13', 'product:title', 'iPhone 5'
+put 'orders', 'joe_2013-01-13', 'product:delivery', '2013-01-13'
+put 'orders', 'jane_2013-02-05', 'client:name', 'Jane'
+put 'orders', 'jane_2013-02-05', 'client:address', 'Sunset Drive 42, NY'
+put 'orders', 'jane_2013-02-05', 'product:title', 'Samsung S4'
+put 'orders', 'jane_2013-02-05', 'product:delivery', '2013-05-02'
+
+describe 'orders'
+get 'orders', 'jane_2013-02-05', {COLUMN => 'product:'}
+scan 'orders', FILTER => "ValueFilter(=,'substring:Sunset')"
+scan 'orders', { COLUMNS => ['client'], FILTER=>"ValueFilter(=,'substring:road')" }
+scan 'orders', { COLUMNS => ['product'], FILTER=>"ValueFilter(=,'substring:2013-')" }
+
+
+
+58.
+python sqlline.py 192.168.56.101:2181:/hbase
+
+CREATE TABLE countries ( 
+    country_id      CHAR(2) NOT NULL PRIMARY KEY, 
+    country_name    VARCHAR(40), 
+    region_id       INTEGER
+); 
+
+SELECT region_id, count(country_id) 
+FROM countries
+GROUP BY region_id;
+
+
+
+64.
+Cluster cluster = Cluster.builder()
+   .addContactPoint("192.168.56.101").build();
+Session session = cluster.connect();
+//---Create DB
+String ddl1 = "CREATE KEYSPACE testdb with " +
+   " REPLICATION={'class':'SimpleStrategy', 'replication_factor': 3}; ";
+session.execute(ddl1);
+//----Create Table
+String cql = "CREATE TABLE testdb.employees ( " +
+   " empid int,  deptid int, empname text, " +
+   " PRIMARY KEY (empid, deptid) " +   
+   "); ";
+session.execute(cql);
+//---QUERY DATA
+ResultSet rs = session.execute("select * from testdb.employees");
+for (Row row : rs) {
+    System.out.println(row.getString("empname") + " : " + 
+    row.getInt("empid") + " : " + row.getInt("deptid"));
+}
+session.close();
+cluster.close();
+
+
+
+//----INSERT DATA
+PreparedStatement stmt = session.prepare(
+	"INSERT INTO testdb.employees (empid, deptid, empname) VALUES (?, ?, ?); ");
+BoundStatement boundStatement = new BoundStatement(stmt);
+session.execute(boundStatement.bind(1001, 1, "홍길동"));
+session.execute(boundStatement.bind(1002, 2, "이몽룡"));
+session.execute(boundStatement.bind(1003, 2, "성춘향"));
+session.execute(boundStatement.bind(1004, 1, "박문수"));
+session.execute(boundStatement.bind(1005, 2, "박명수"));
+session.execute(boundStatement.bind(1006, 2, "향단이"));
+
+
+
+65.
+Class.forName("org.apache.cassandra.cql.jdbc.CassandraDriver");
+Connection con = DriverManager
+    .getConnection("jdbc:cassandra://192.168.56.101:9160/testdb");
+String query = "INSERT INTO employees (empid, deptid, empname) VALUES (?,?,?);";
+PreparedStatement pstmt = con.prepareStatement(query);
+pstmt.setInt(1, 1011);
+pstmt.setInt(2, 1);
+pstmt.setString(3, "정형돈");
+pstmt.executeUpdate();
+pstmt.close();
+con.close();
+System.out.println("실행 완료!!");
+
+
+66.
+Cluster cluster = HFactory.getOrCreateCluster("Test Cluster", "192.168.56.101:9160");
+Keyspace ksp = HFactory.createKeyspace("testdb", cluster);
+
+ColumnFamilyTemplate<String, String> template = 
+    new ThriftColumnFamilyTemplate<String, String>(
+        ksp, "users", StringSerializer.get(), StringSerializer.get());
+
+ ColumnFamilyUpdater<String,String> updater =
+ template.createUpdater("mspark");
+ updater.setString("full_name", "박문수");
+ updater.setString("email", "mspark@opensg.net");
+ updater.setString("birth_year", "1982");
+ updater.setString("gender", "M");
+ updater.setString("city", "Seoul");
+
+try {
+    template.update(updater);
+} catch (HectorException e) {
+    e.printStackTrace();
+}
+
+
+
+67.
+Cluster cluster = HFactory.getOrCreateCluster("Test Cluster", "192.168.56.101:9160");
+Keyspace ksp = HFactory.createKeyspace("testdb", cluster);
+ColumnFamilyTemplate<String, String> template = 
+    new ThriftColumnFamilyTemplate<>(
+        ksp, "users", StringSerializer.get(), StringSerializer.get());
+
+try {
+    ColumnFamilyResult<String, String> result = template.queryColumns("hswon");
+    System.out.println("Full name : " + result.getString("full_name"));
+    System.out.println("Email : " + result.getString("email"));
+    System.out.println("city : " + result.getString("city"));
+} catch (HectorException e) {
+    e.printStackTrace();
+}
+
+
+
+68.
+Cluster cluster = HFactory.getOrCreateCluster("Test Cluster", "192.168.56.101:9160");
+Keyspace ksp = HFactory.createKeyspace("testdb", cluster);
+ColumnFamilyTemplate<String, String> template = 
+    new ThriftColumnFamilyTemplate<>(
+         ksp, "users", StringSerializer.get(), StringSerializer.get());
+
+SliceQuery<String,String,String> query = HFactory.createSliceQuery(
+                  ksp, StringSerializer.get(), StringSerializer.get(), StringSerializer.get());
+query.setColumnFamily("users");
+query.setKey("mspark");
+ColumnSliceIterator<String, String, String> iterator = 
+	    new ColumnSliceIterator<String, String, String>(query, null, "\uFFFF", false, 5);
+
+while (iterator.hasNext()) {
+    HColumn<String,String> col = iterator.next();
+    System.out.println(col.getName() + " : " + col.getValue());
+}
+
+
+
+69.
+Cluster cluster = HFactory.getOrCreateCluster("Test Cluster", "192.168.56.101:9160");
+Keyspace ksp = HFactory.createKeyspace("testdb", cluster);
+ColumnFamilyTemplate<String, String> template = 
+    new ThriftColumnFamilyTemplate<>(
+         ksp, "users", StringSerializer.get(), StringSerializer.get());
+
+SliceQuery<String,String,String> query = HFactory.createSliceQuery(
+                  ksp, StringSerializer.get(), StringSerializer.get(), StringSerializer.get());
+query.setColumnFamily("users");
+query.setKey("mspark");
+ColumnSliceIterator<String, String, String> iterator = 
+	    new ColumnSliceIterator<String, String, String>(query, null, "\uFFFF", false, 5);
+
+while (iterator.hasNext()) {
+    HColumn<String,String> col = iterator.next();
+    System.out.println(col.getName() + " : " + col.getValue());
+}
+
+
+
+70.
+EntityManagerImpl em = new EntityManagerImpl(ksp, "com.multi.hector.vo");
+Customer c1 = new Customer("mspark", "박문수", "010-245-8655", "C-22134");
+VIPCustomer v1 = 
+      new VIPCustomer("mrlee","이몽룡", "010-1212-4545", "C-24511", "V-1004");
+em.persist(c1);
+em.persist(v1);
+System.out.println("데이터 추가/수정 완료");
+
+//데이터 조회
+Customer c = (Customer)em.find(Customer.class, "mrlee");
+System.out.println(c.getUsername() + " : " + c.getCustomerNo());
+
+
+@Entity
+@DiscriminatorValue("normal")
+public class Customer extends Person {
+   @Column(name="custno")
+   private String customerNo;
+   ...
+}
+
+
+@Entity
+@DiscriminatorValue("vip")
+public class VIPCustomer extends Customer {
+    @Column(name="vipno")
+    private String vipNo;
+    ...
+}
+
+
+
+71.
+
+private String tblName = "orders";
+private String cf1 = "client";
+private String cf2 = "product";
+
+
+Configuration config = HBaseConfiguration.create();
+config.clear();
+config.set("hbase.master", "s1.test.com");
+config.set("hbase.zookeeper.quorum", "s1.test.com");
+config.set("hbase.zookeeper.property.clientPort", "2181");
+
+//---Query Data
+HTable table =new HTable(config, tblName);
+Scan s =new Scan();
+ResultScanner rs = table.getScanner(s);
+for (Result r : rs) {
+    for (KeyValue kv : r.raw()) {
+        System.out.println("row:" + new String(kv.getRow(), "utf-8") +"");
+        System.out.println("family:" + new String(kv.getFamily(), "utf-8") +":");
+        System.out.println("qualifier:" + new String(kv.getQualifier(), "utf-8") +"");
+        System.out.println("value:" + new String(kv.getValue(), "utf-8"));
+        System.out.println("timestamp:" + kv.getTimestamp() +"");
+        System.out.println("-------------------------------------------");
+    }
+}
+table.close();
+
+
+
+72.
+
+private String tblName = "orders";
+private String cf1 = "client";
+private String cf2 = "product";
+
+
+ ......
+HTable table =new HTable(config, tblName);
+Put put =new Put(Bytes.toBytes(rowKey));
+put.add(Bytes.toBytes(cf1), Bytes.toBytes("name"), Bytes.toBytes(name));
+put.add(Bytes.toBytes(cf1), Bytes.toBytes("address"), Bytes.toBytes(address));
+put.add(Bytes.toBytes(cf2), Bytes.toBytes("title"), Bytes.toBytes(title));
+put.add(Bytes.toBytes(cf2), Bytes.toBytes("delivery"), Bytes.toBytes(delivery));
+table.put(put);
+table.close();
+
+......
+HBaseAdmin hadmin = new HBaseAdmin(config);
+HTableDescriptor desc = new HTableDescriptor(tblName);
+HColumnDescriptor meta1 = new HColumnDescriptor(cf1.getBytes());
+desc.addFamily(meta1);
+HColumnDescriptor meta2 = new HColumnDescriptor(cf2.getBytes());
+desc.addFamily(meta2);
+hadmin.createTable(desc);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
