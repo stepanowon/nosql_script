@@ -1,0 +1,99 @@
+1. 샤딩 구성전 전체 요소들을 확인
+- s1~s3 : shard server(10000) + config server(20000)
+- s4 : mongos router(27017)
+
+2. 샤드 서버와 컨피그 서버 기동
+** s1 ~ s3에서 실행
+cd ~/mongodb
+rm -rf data
+mkdir -p data/db
+mkdir -p data/config
+./bin/mongod --shardsvr --dbpath data/db --port 10000 &
+./bin/mongod --configsvr --dbpath data/config --port 20000 --replSet cfg &
+
+
+2. 
+** s1의 샤드 서버에 접속하여 샘플 데이터 입력
+mongo.exe s1:10000
+
+use test
+var names = ["홍길동", "박문수", "성춘향", "이몽룡", "변사또"];
+for(var i=0; i < 100000; i++){
+    name = names[ i % 5 ];
+    user_id = i+1;
+    added_at = new Date();
+    number = Math.random();
+    db.users.insert({
+       name : name, 
+       userid : user_id, 
+       addedat : added_at, 
+       num : number 
+    });
+}
+
+** 샤드키는 num 필드로 선정하였다라고 가정함
+db.users.createIndex({ num:1 })
+
+
+3. config 서버(s1:20000)에 접속하여 ReplicaSet 을 구성한다.(3.4버전부터는 ReplicaSet 구성 필수)
+
+mongo.exe s1:20000
+
+use admin
+rs.initiate()
+rs.add("s2:20000")
+rs.add("s3:20000")
+
+
+4. s4 서버에서 mongos Router를 기동한다.
+** 이 때 컨피그 서버를 참조하도록 설정해야 함.(레플리카셋 이름과 컨피그 서버중 한대만 참조하면 됨.)
+
+./bin/mongos --configdb cfg/s1:20000  --port 27017  
+
+
+
+5. s4에 접속한 명령창에서 chunkSize를 변경한다.
+** 초기값은 64MB 지만 테스트 데이터의 사이즈가 작으므로 테스트만을 위해 의도적으로 줄인다. 실무에서는 절대 사이즈 줄이지 않음
+
+mongo.exe s4:27017
+use config
+db.settings.save( { _id:"chunksize", value:  NumberLong(1) } )
+
+
+6. mongos 라우터에 접속한 창에서 샤드 서버들을 추가한다.
+** 아직은 컨피그 서버만 참조된 상태
+** 일단 두대의 샤드 서버만을 추가함
+use admin
+sh.addShard("s1:10000")
+sh.addShard("s2:10000")
+
+
+7. 데이터베이스에 대한 샤드 설정
+
+sh.enableSharding("test")
+
+
+8. 컬렉션에 대한 샤드 설정
+sh.shardCollection("test.users", {num:1})
+
+** 이제 데이터가 두대의 샤드 서버로 분할되어 저장하는 것을 확인할 수 있음
+sh.status() 명령어로 설정 내용과 분할된 Chunk 정보를 확인함.
+
+** s2:10000과 s3:10000에 직접 접속하여 데이터 분할을 확인
+mongo.exe s2:10000
+db.users.count()  //45000~55000
+
+-----------------------------------------------------
+
+9. 이제 용량 증설이 필요하다면 샤드 서버만 기동한 후 sh.addShard만 수행하면 됨.
+**이미 s3 의 샤드서버가 시작된 상태이므로 addShard만!!!
+
+sh.addShard("s3:10000")
+
+sh.status()
+
+
+
+
+
+
