@@ -153,24 +153,31 @@ db.words.insert({sentence : "Where's the peck of pickled peppers Peter Piper pic
 
 
 26.
-db.words.mapReduce(function() {
-    var wordlist = this.sentence.match(/\w+/g);
-    if (wordlist == null)
-      return null;
-    for (var i=0; i < wordlist.length; i++) {
-      emit(wordlist[i].toLowerCase() , {count : 1});
-    }
-}, function(key, emits) {
-    var total=0;
-    for (var i=0; i < emits.length; i++) {
-      total += emits[i].count;
-    }  
-    return {count : total };
-}, { 
-   out : { replace : 'mr' } 
-});
+finalize ->	"peter" : { count:9 }
+reduce ->	"peter" : { count:9 }
+map ->		"peter" : { count:1 }
+shuffling-> 	"peter" : [ {count:1}, {count:1}, .... ]
 
-db.mr.find();
+function map() {
+   var arr= this.sentence.match(/[ㄱ-힣\w]+/g);
+   for (var i=0; i < arr.length; i++) {
+      emit(arr[i].toLowerCase(), { count:1 });
+   }
+}
+
+//shuffling-> 	"peter" : [ {count:1}, {count:1}, .... ]
+function reduce(key, values) {
+   var result = { count: 0 };
+   for (var i=0; i < values.length; i++) {
+      result.count += values[i].count;
+   }
+   return result;
+}
+
+db.words.mapReduce(map, reduce, {
+   out : { replace:"wordcount" }
+})
+db.wordcount.find()
 
 
 
