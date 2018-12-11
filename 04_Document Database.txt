@@ -143,6 +143,14 @@ db.persons.ensureIndex({ "name.last" : 1 });
 db.food.ensureIndex({ fruit:1 })
 
 
+25.
+
+db.words.insert({sentence : "peter Piper picked a peck of pickled peppers"})
+db.words.insert({sentence : "A peck of pickled peppers Peter Piper picked"})
+db.words.insert({sentence : "If Peter Piper picked a peck of Peppers"})
+db.words.insert({sentence : "Where's the peck of pickled peppers Peter Piper picked"})
+
+
 
 26.
 db.words.mapReduce(function() {
