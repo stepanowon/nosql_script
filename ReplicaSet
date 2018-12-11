@@ -1,0 +1,49 @@
+1. 
+** s1~s3 가상머신마다 다음 명령문을 실행 **
+
+cd  ~/mongodb
+rm -rf data/db
+mkdir  -p  data/db
+./bin/mongod  --dbpath data/db  --port 27017  --replSet  test1 
+
+
+2. 
+** s1에 접속하여 Replica Set을 구성한다 **
+
+mongo.exe s1:27017
+
+rs.initiate();
+// initiate()는 컴퓨터 이름으로  자동 등록함. 
+cfg = rs.conf();
+rs.add("s2:27017");
+rs.add("s3:27017");
+
+
+3. 
+** Sample Data를 추가하여 복제 여부를 확인한다.
+** local db는 복제하지 않음
+
+use test
+for (var i=0; i < 10000; i++) {
+   db.users.save({name:"john"+i, age:20 + (i%10) })
+}
+
+
+4. 
+** s2, s3에 접속하여 복제 여부를 확인한다. **
+
+mongo.exe  s2:27017
+use test
+db.users.findOne();	  //에러 발생 slave에서의 조회를 허용안함이  default임
+rs.slaveOk();	  //slave에서의 조회 허용
+db.users.findOne();
+db.users.insert({name :"obama", age:60});	//not master! 쓰기 허용(X)
+
+
+5. 
+** 장애 복구 여부 확인
+
+s1 가상머신에서 서버 인스턴스(Primary)를 강제로 중단시킨다.
+s2, s3 중의 어느 하나가 Primary로 전환되었는지 여부를 확인한다.
+
+
