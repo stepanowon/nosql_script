@@ -199,7 +199,33 @@ db.stocks.aggregate([{
   "$out" : "stocks_mr"
 }]);
 
+---------------------------------------
 
+db.students.insert( { 
+     student: "Richard Gere", 
+     courses: ['Music', 'Korean', 'Mathematics'] 
+});
+
+db.students.insert( { student: "Will Smith", 
+     courses: ['English', 'Korean', 'Science', 'Music'] });
+db.students.insert( { student: "Barack Obama", 
+     courses: ['Music', 'Theatre', 'Dance'] });
+db.students.insert( { student: "Mitt Romney", 
+     courses: ['History', 'English', 'Science', 'Korean'] });
+db.students.insert( { student: "Tommy Lee Jones", 
+     courses: ['Arts', 'Mathematics', 'Dance'] });
+
+
+db.students.aggregate([
+  {  $project : { _id:0, student:1, courses:1 } },
+  {  $unwind : "$courses" },
+  { 
+      $group : {
+         _id : "$courses",
+         students : { $addToSet : "$student" }
+      }
+  }
+])
 
 
 29.
