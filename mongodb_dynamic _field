@@ -1,0 +1,45 @@
+
+
+** students 컬렉션!!
+{
+   _id:"John", 
+  skills : [
+      { skill:"Math", level:"Excellent" },
+      { skill:"Poetry", level:"Poor" },
+      ...
+  ]
+}
+
+//질의 : Poetry 스킬을 가진 학생들의 Poetry 스킬의 레벨만 알고 싶다?
+db.students.createIndex({ "skills.skill" : 1 })
+var cursor = db.students.find({ "skills.skill" : "Poetry" });
+while(cursor.hasNext()) {
+   var doc = cursor.nect();
+   for (var i=0; i < doc.skills.length; i++) {
+      if (doc.skills[i].skill === "Poetry") {
+             //찾았다.  doc.skills[i].level
+      }
+   }
+}
+
+--------------------------------------
+[ Dynamic Field ]
+
+** students 컬렉션!!
+{
+   _id:"John", 
+  skills : {
+     "Math" : { score:4.5, level: "Excellent" },
+     "Poetry " : { score:3, level: "Poor"},
+     ....
+  },
+  skill_list : ["Math", "Poetry" ]
+}
+
+//질의 : Poetry 스킬을 가진 학생들의 Poetry 스킬의 레벨만 알고 싶다?
+db.students.createIndex({ "skill_list" : 1 })
+var cursor = db.students.find({ "skill_list" : "Poetry" });
+while(cursor.hasNext()) {
+   var doc = cursor.nect();
+   //doc.Math.level  또는 doc["Math"].level
+}
