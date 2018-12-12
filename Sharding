@@ -1,3 +1,15 @@
+** 샤드키 선정 기준
+- Cardinality!! : 고유키 갯수/전체 Document 수 >= 0.1
+- Sequential VS Random
+  * Sequential : Hotspot!!  W성능저하 시퀀셜R(성능보장)
+  * Random : W성능 굿!!  시퀀셜R 성능 저하
+- 샤드키 필드를 조회조건으로 사용하도록
+- 복합 샤드키
+  * 복합 인덱스 --> 샤드키로 지정
+  * 시퀀셜 필드 + 랜덤한 필드
+  * 랜덤 필드 + 시퀀셜 필드
+
+---------------------------------------
 1. 샤딩 구성전 전체 요소들을 확인
 - s1~s3 : shard server(10000) + config server(20000)
 - s4 : mongos router(27017)
