@@ -2,3 +2,27 @@ db.words.insert({sentence : "peter Piper picked a peck of pickled peppers"})
 db.words.insert({sentence : "A peck of pickled peppers Peter Piper picked"})
 db.words.insert({sentence : "If Peter Piper picked a peck of Peppers"})
 db.words.insert({sentence : "Where's the peck of pickled peppers Peter Piper picked"})
+
+
+
+var map1 = function() {
+   var arr = this.sentence.match(/\w+/g);
+   for (var i=0; i < arr.length; i++) {
+      emit(arr[i].toLowerCase(), { count:1 });
+   }
+}
+
+// [ { count:1 },  ..... ]
+var reduce1 = function(key,values) {
+   var result = { count: 0 };
+   for (var i=0; i < values.length; i++) {
+      result.count += values[i].count;
+   }
+   return result;
+}
+
+db.words.mapReduce(map1, reduce1, {
+   out : { replace : "mr" }
+})
+
+db.mr.find();
