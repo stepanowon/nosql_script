@@ -40,6 +40,6 @@ while(cursor.hasNext()) {
 db.students.createIndex({ "skill_list" : 1 })
 var cursor = db.students.find({ "skill_list" : "Poetry" });
 while(cursor.hasNext()) {
-   var doc = cursor.nect();
-   //doc.Math.level  또는 doc["Math"].level
+   var doc = cursor.next();
+   //doc.skills.Poetry.level  또는 doc.skills["Poetry"].level
 }
